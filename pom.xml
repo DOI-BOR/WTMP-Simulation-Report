@@ -17,7 +17,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>usbr.wat.plugins</groupId>
-			<artifactId>usbr-wat-plugins-parent</artifactId>
+			<artifactId>usbr-actionpanel-plugin</artifactId>
 			<version>0.0.2-SNAPSHOT</version>
 		</dependency>
 		<dependency>
