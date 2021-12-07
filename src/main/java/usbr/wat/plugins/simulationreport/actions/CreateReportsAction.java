@@ -8,6 +8,7 @@
 package usbr.wat.plugins.simulationreport.actions;
 
 import java.awt.Cursor;
+import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.io.BufferedReader;
 import java.io.File;
@@ -23,7 +24,6 @@ import java.util.Map;
 import java.util.StringTokenizer;
 
 import javax.swing.AbstractAction;
-import javax.swing.JOptionPane;
 
 import org.python.core.Py;
 import org.python.core.PyCode;
@@ -114,46 +114,24 @@ public class CreateReportsAction extends AbstractAction
 	}
 	public boolean createReport()
 	{
-		if ( _parent.getSimulationGroup() == null )
-		{
-			JOptionPane.showMessageDialog(_parent,"Please create or select a Simulation Group first",
-					"No Simulation Group Selected", JOptionPane.INFORMATION_MESSAGE);
-			return false;
-			
-		}
 		
-		List<WatSimulation>sims = _parent.getSelectedSimulations();
-		if ( sims.isEmpty())
-		{
-			JOptionPane.showMessageDialog(_parent,"Please select the simulations that you want to create reports for",
-					"No Simulations Selected", JOptionPane.INFORMATION_MESSAGE);
-			return false;
-		}
 		WatSimulation sim;
 		_parent.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 		long t1 = System.currentTimeMillis();
-		try
+		List<WatSimulation>sims = _parent.getSelectedSimulations();
+		String xmlFile = createSimulationXmlFile(sims.get(0));
+		if ( xmlFile != null )
 		{
-			for(int i = 0;i < sims.size(); i++ )
-			{
-				sim = sims.get(i);
-				runSimulationReport(sim);	
-			}
+			return runPythonScript(xmlFile);
 		}
-		finally
-		{
-			long t2 = System.currentTimeMillis();
-			System.out.println("createReportAction:total time to create report is "+(t2-t1)+" ms");
-			_parent.setCursor(Cursor.getPredefinedCursor(0));
-		}
-		return true;
+		return false;
 	}
 	/**
 	 * @param reportFile
 	 * @param pythonReportBat
 	 * @return
 	 */
-	private boolean runPythonScript(String reportFile, String pythonReportBat)
+	private static boolean runPythonScript(String reportXmlFile)
 	{
 		long t1 = System.currentTimeMillis();
 		try
@@ -163,31 +141,26 @@ public class CreateReportsAction extends AbstractAction
 				return true;
 			}
 			List<String>cmdList = new ArrayList<>();
-			String dir = System.getProperty("WAT.InstallDir", null);
-			if ( dir == null )
-			{
-				dir = System.getProperty("user.dir");
-			}
-			dir = RMAIO.concatPath(dir, REPORT_INSTALL_FOLDER);
+			String dir = getDirectoryToUse();
 			
-			String batFile = RMAIO.concatPath(dir, PYTHON_REPORT_BAT);
+			String exeFile = RMAIO.concatPath(dir, PYTHON_REPORT_BAT);
 			//cmdList.add("cmd.exe");
 			//cmdList.add("/c");
-			cmdList.add(batFile);
-			cmdList.add(reportFile);
+			cmdList.add(exeFile);
+			cmdList.add(reportXmlFile);
 
 			return runProcess(cmdList, dir);
 		}
 		finally
 		{
 			long t2 = System.currentTimeMillis();
-			System.out.println("runPythonScript:time to run python for "+reportFile+" is "+(t2-t1)+"ms");
+			System.out.println("runPythonScript:time to run python for "+reportXmlFile+" is "+(t2-t1)+"ms");
 		}
 	}
 	/**
 	 * @param sim
 	 */
-	private String createSimulationReport(WatSimulation sim)
+	private String createSimulationXmlFile(WatSimulation sim)
 	{
 		Project prj = Project.getCurrentProject();
 		String studyDir = prj.getProjectDirectory();
@@ -442,7 +415,7 @@ public class CreateReportsAction extends AbstractAction
 	 * @param sim
 	 * @return
 	 */
-	private boolean runPythonInitScript(WatSimulation sim)
+	private static boolean runPythonInitScript(WatSimulation sim)
 	{
 		long t1 = System.currentTimeMillis();
 		try
@@ -494,11 +467,12 @@ public class CreateReportsAction extends AbstractAction
 			}
 
 			List<String>cmdList = new ArrayList<>();
+			String dirToUse = getDirectoryToUse();
+			String exeFile = RMAIO.concatPath(dirToUse, PYTHON_REPORT_BAT);
 			String studyDir = Project.getCurrentProject().getProjectDirectory();
-			String batFile = RMAIO.concatPath(studyDir, PYTHON_REPORT_BAT);
 			//cmdList.add("cmd.exe");
 			//cmdList.add("/c");
-			cmdList.add(batFile);
+			cmdList.add(exeFile);
 			cmdList.add(studyDir);
 			// hack for having a comma in the path and the RMAIO.userNameToFileName() not catching it
 			String simDir = sim.getSimulationDirectory();
@@ -513,7 +487,7 @@ public class CreateReportsAction extends AbstractAction
 
 
 
-			return runProcess(cmdList, studyDir);
+			return runProcess(cmdList, dirToUse);
 		}
 		finally
 		{
@@ -524,15 +498,34 @@ public class CreateReportsAction extends AbstractAction
 	}
 	
 	/**
+	 * @return
+	 */
+	private static String getDirectoryToUse()
+	{
+		String dir = System.getProperty("WAT.InstallDir", null);
+		if ( dir == null || dir.isEmpty())
+		{
+			dir = System.getProperty("user.dir");
+			System.out.println("getDirectoryToUse:WAT.InstallDir not set using "+dir);
+		}
+		else
+		{
+			System.out.println("getDirectoryToUse:WAT.InstallDir set to "+dir);
+		}
+					
+		dir = RMAIO.concatPath(dir, REPORT_INSTALL_FOLDER);
+		return dir;
+	}
+	/**
 	 * @param studyDir
 	 * @return
 	 */
-	private String getObsDataPath(String studyDir)
+	private static String getObsDataPath(String studyDir)
 	{
 		return RMAIO.concatPath(studyDir, OBS_DATA_FOLDER);
 	}
 	
-	private boolean runProcess(List<String> cmdList, String runInFolder)
+	private static boolean runProcess(List<String> cmdList, String runInFolder)
 	{
 		String[] cmdArray = new String[cmdList.size()];
 		cmdList.toArray(cmdArray);
@@ -707,7 +700,7 @@ public class CreateReportsAction extends AbstractAction
 	/**
 	 * @param directoryFromPath
 	 */
-	private void compileJasperFiles(String jasperDir)
+	private static void compileJasperFiles(String jasperDir)
 	{
 		RMAFilenameFilter filter= new RMAFilenameFilter(JASPER_SOURCE_FILE_EXT);
 		filter.setAcceptDirectories(false);
@@ -760,7 +753,7 @@ public class CreateReportsAction extends AbstractAction
 	 * @param srcFile
 	 * @return
 	 */
-	private String getJasperDestFile(String srcFile)
+	private static String getJasperDestFile(String srcFile)
 	{
 		int idx = srcFile.lastIndexOf('.');
 		if ( idx > -1 )
@@ -775,7 +768,7 @@ public class CreateReportsAction extends AbstractAction
 	 * @param sim
 	 * @return
 	 */
-	private String findFpartForPython(WatSimulation sim, ModelAlternative modelAlt)
+	private static String findFpartForPython(WatSimulation sim, ModelAlternative modelAlt)
 	{
 		String fpart = sim.getFPart(modelAlt);
 		return RMAIO.userNameToFileName(fpart);
@@ -807,11 +800,14 @@ public class CreateReportsAction extends AbstractAction
 	{
 		return getName();
 	}
-	
+	public static void register()
+	{
+		ReportsManager.register(new CreateReportsAction(ActionPanelPlugin.getInstance().getActionsWindow()));
+	}
 	
 	public static void main(String[] args)
 	{
-		ReportsManager.register(new CreateReportsAction(ActionPanelPlugin.getInstance().getActionsWindow()));
+		EventQueue.invokeLater(()->register());
 	}
 
 }
