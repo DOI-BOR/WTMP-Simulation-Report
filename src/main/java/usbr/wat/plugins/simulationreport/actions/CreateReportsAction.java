@@ -7,7 +7,6 @@
  */
 package usbr.wat.plugins.simulationreport.actions;
 
-import java.awt.Cursor;
 import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.io.BufferedReader;
@@ -116,13 +115,15 @@ public class CreateReportsAction extends AbstractAction
 	{
 		
 		WatSimulation sim;
-		_parent.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 		long t1 = System.currentTimeMillis();
 		List<WatSimulation>sims = _parent.getSelectedSimulations();
 		String xmlFile = createSimulationXmlFile(sims.get(0));
 		if ( xmlFile != null )
 		{
-			return runPythonScript(xmlFile);
+			if ( runPythonScript(xmlFile))
+			{
+				return runJasperReport(sims.get(0));
+			}
 		}
 		return false;
 	}
