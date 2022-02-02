@@ -58,7 +58,6 @@ import net.sf.jasperreports.repo.RepositoryService;
 import rma.util.RMAFilenameFilter;
 import rma.util.RMAIO;
 import usbr.wat.plugins.actionpanel.ActionPanelPlugin;
-import usbr.wat.plugins.actionpanel.ActionsWindow;
 import usbr.wat.plugins.actionpanel.io.ReportXmlFile;
 import usbr.wat.plugins.actionpanel.model.ReportPlugin;
 import usbr.wat.plugins.actionpanel.model.ReportsManager;
@@ -95,16 +94,14 @@ public class CreateReportsAction extends AbstractAction
 	private static final String SIMULATION_LAST_COMPUTED_DATE_PARAM = "simulationDate";
 	private static final String SCRIPTS_DIR = "scripts";
 	
-	private ActionsWindow _parent;
 	
 	private PythonInterpreter  _interp;
 	private PyCode _pycode;
 	
-	public CreateReportsAction(ActionsWindow parent)
+	public CreateReportsAction()
 	{
 		super("Create Reports");
 		setEnabled(false);
-		_parent = parent;
 	}
 	@Override
 	public void actionPerformed(ActionEvent e)
@@ -116,7 +113,7 @@ public class CreateReportsAction extends AbstractAction
 		
 		WatSimulation sim;
 		long t1 = System.currentTimeMillis();
-		List<WatSimulation>sims = _parent.getSelectedSimulations();
+		List<WatSimulation>sims = ActionPanelPlugin.getInstance().getActionsWindow().getSelectedSimulations();
 		String xmlFile = createSimulationXmlFile(sims.get(0));
 		if ( xmlFile != null )
 		{
@@ -176,7 +173,7 @@ public class CreateReportsAction extends AbstractAction
 		xmlFile.setStudyInfo(studyDir, getObsDataPath(studyDir));
 		List<WatSimulation>sims = new ArrayList();
 		sims.add(sim);
-		xmlFile.setSimulations(_parent.getSimulationGroup().getName(), sims);
+		xmlFile.setSimulations(ActionPanelPlugin.getInstance().getActionsWindow().getSimulationGroup().getName(), sims);
 		if (  xmlFile.createXMLFile() )
 		{
 			return filename;
@@ -190,14 +187,14 @@ public class CreateReportsAction extends AbstractAction
 		ModelAlternative modelAlt;
 		
 		String simName = sim.getName();
-		String groupName = _parent.getSimulationGroup().getName();
+		String groupName = ActionPanelPlugin.getInstance().getActionsWindow().getSimulationGroup().getName();
 		String baseSimulationName = RMAIO.replace(simName, "-"+groupName, "");
 		
 		if ( !Boolean.getBoolean("SkipPythonReport"))
 		{
 			if ( !runPythonInitScript(sim))
 			{
-				_parent.addMessage("Failed to initialize report script for " + sim);
+				ActionPanelPlugin.getInstance().getActionsWindow().addMessage("Failed to initialize report script for " + sim);
 				return;
 			}
 			for(int m = 0;m < modelAlts.size(); m++ )
@@ -211,13 +208,13 @@ public class CreateReportsAction extends AbstractAction
 				{
 					if ( !runPythonScript(sim, modelAlt, baseSimulationName))
 					{
-						_parent.addMessage("Failed to generate report input for " + sim+" Alternative "+modelAlt);
+						ActionPanelPlugin.getInstance().getActionsWindow().addMessage("Failed to generate report input for " + sim+" Alternative "+modelAlt);
 						return;
 					}
 				}
 				else
 				{
-					_parent.addMessage("Failed to generate report input for " + sim+" Alternative "+modelAlt);
+					ActionPanelPlugin.getInstance().getActionsWindow().addMessage("Failed to generate report input for " + sim+" Alternative "+modelAlt);
 					return;
 				}
 							
@@ -225,11 +222,11 @@ public class CreateReportsAction extends AbstractAction
 		}
 		if ( !runJasperReport(sim))
 		{
-			_parent.addMessage("Failed to generate report file for " + sim);
+			ActionPanelPlugin.getInstance().getActionsWindow().addMessage("Failed to generate report file for " + sim);
 		}
 		else
 		{
-			_parent.addMessage("Generated Report File for "+ sim);
+			ActionPanelPlugin.getInstance().getActionsWindow().addMessage("Generated Report File for "+ sim);
 		}
 		
 	}
@@ -803,7 +800,7 @@ public class CreateReportsAction extends AbstractAction
 	}
 	public static void register()
 	{
-		ReportsManager.register(new CreateReportsAction(ActionPanelPlugin.getInstance().getActionsWindow()));
+		ReportsManager.register(new CreateReportsAction());
 	}
 	
 	public static void main(String[] args)
