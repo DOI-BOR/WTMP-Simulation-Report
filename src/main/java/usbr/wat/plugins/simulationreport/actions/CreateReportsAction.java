@@ -61,6 +61,7 @@ import usbr.wat.plugins.actionpanel.ActionPanelPlugin;
 import usbr.wat.plugins.actionpanel.io.ReportXmlFile;
 import usbr.wat.plugins.actionpanel.model.ReportPlugin;
 import usbr.wat.plugins.actionpanel.model.ReportsManager;
+import usbr.wat.plugins.actionpanel.model.SimulationReportInfo;
 
 /**
  * @author Mark Ackerman
@@ -113,13 +114,13 @@ public class CreateReportsAction extends AbstractAction
 		
 		WatSimulation sim;
 		long t1 = System.currentTimeMillis();
-		List<WatSimulation>sims = ActionPanelPlugin.getInstance().getActionsWindow().getSelectedSimulations();
-		String xmlFile = createSimulationXmlFile(sims.get(0));
+		List<SimulationReportInfo>simInfos = ActionPanelPlugin.getInstance().getActionsWindow().getSimulationReportInfos();
+		String xmlFile = createSimulationXmlFile(simInfos.get(0));
 		if ( xmlFile != null )
 		{
 			if ( runPythonScript(xmlFile))
 			{
-				return runJasperReport(sims.get(0));
+				return runJasperReport(simInfos.get(0));
 			}
 		}
 		return false;
@@ -158,12 +159,12 @@ public class CreateReportsAction extends AbstractAction
 	/**
 	 * @param sim
 	 */
-	private String createSimulationXmlFile(WatSimulation sim)
+	private static String createSimulationXmlFile(SimulationReportInfo info)
 	{
 		Project prj = Project.getCurrentProject();
 		String studyDir = prj.getProjectDirectory();
 		String filename = RMAIO.concatPath(studyDir, REPORT_DIR);
-		filename = RMAIO.concatPath(filename, RMAIO.userNameToFileName(sim.getName())+".xml");
+		filename = RMAIO.concatPath(filename, RMAIO.userNameToFileName(info.getName())+".xml");
 		if ( Boolean.getBoolean("SkipSimulationReportFile"))
 		{
 			return filename;
@@ -171,16 +172,16 @@ public class CreateReportsAction extends AbstractAction
 		
 		ReportXmlFile xmlFile = new ReportXmlFile(filename);
 		xmlFile.setStudyInfo(studyDir, getObsDataPath(studyDir));
-		List<WatSimulation>sims = new ArrayList();
-		sims.add(sim);
-		xmlFile.setSimulations(ActionPanelPlugin.getInstance().getActionsWindow().getSimulationGroup().getName(), sims);
+		List<SimulationReportInfo>sims = new ArrayList<>();
+		sims.add(info);
+		xmlFile.setSimulationInfo(ActionPanelPlugin.getInstance().getActionsWindow().getSimulationGroup().getName(), sims);
 		if (  xmlFile.createXMLFile() )
 		{
 			return filename;
 		}
 		return null;
 	}
-	
+	/*
 	private void runSimulationReport(WatSimulation sim)
 	{
 		List<ModelAlternative> modelAlts = sim.getAllModelAlternativeList();
@@ -230,6 +231,7 @@ public class CreateReportsAction extends AbstractAction
 		}
 		
 	}
+	*/
 	/**
 	 * @return
 	 */
@@ -565,14 +567,14 @@ public class CreateReportsAction extends AbstractAction
 	/**
 	 * @param sim
 	 */
-	public boolean runJasperReport(WatSimulation sim)
+	public boolean runJasperReport(SimulationReportInfo info)
 	{
 		long t1 = System.currentTimeMillis();
 		try
 		{
 			//Log log = LogFactory.getLog(JasperFillManager.class);
 			String studyDir = Project.getCurrentProject().getProjectDirectory();
-			String simDir = sim.getSimulationDirectory();
+			String simDir = info.getSimFolder();
 			String jasperRepoDir = RMAIO.concatPath(studyDir, REPORT_DIR);
 			String rptFile = RMAIO.concatPath(jasperRepoDir, JASPER_FILE);
 			//rptFile = RMAIO.concatPath(rptFile, JASPER_FILE);
@@ -607,7 +609,7 @@ public class CreateReportsAction extends AbstractAction
 				return false;
 			}
 			long t3 = System.currentTimeMillis();
-			System.out.println("runJasperReport:time to compile jasper files for "+sim+ "is "+(t3-t2)+"ms");
+			System.out.println("runJasperReport:time to compile jasper files for "+info.getName()+ "is "+(t3-t2)+"ms");
 
 			String outputFile = RMAIO.concatPath(simDir, REPORT_DIR);
 			RmaFile simDirFile = FileManagerImpl.getFileManager().getFile(outputFile);
@@ -624,10 +626,10 @@ public class CreateReportsAction extends AbstractAction
 			// define the parameters for the report
 			params.put("p_ReportFolder", jasperRepoDir);
 			params.put(WATERSHED_NAME_PARAM, Project.getCurrentProject().getName());
-			params.put(SIMULATION_NAME_PARAM, sim.getName());
-			params.put(ANALYSIS_START_TIME_PARAM, sim.getRunTimeWindow().getStartTime().toString());
-			params.put(ANALYSIS_END_TIME_PARAM, sim.getRunTimeWindow().getEndTime().toString());
-			Date date = new Date(sim.getLastComputedDate());
+			params.put(SIMULATION_NAME_PARAM, info.getName());
+			params.put(ANALYSIS_START_TIME_PARAM, info.getSimulation().getRunTimeWindow().getStartTime().toString());
+			params.put(ANALYSIS_END_TIME_PARAM, info.getSimulation().getRunTimeWindow().getEndTime().toString());
+			Date date = new Date(info.getLastComputedDate());
 			SimpleDateFormat fmt = new SimpleDateFormat("MMMM dd, yyyy HH:mm");
 
 			params.put(SIMULATION_LAST_COMPUTED_DATE_PARAM, fmt.format(date));
@@ -667,7 +669,7 @@ public class CreateReportsAction extends AbstractAction
 				return false;
 			}
 			long t4 = System.currentTimeMillis();
-			System.out.println("runJasperReport:time to fill jasper report for "+sim+ "is "+(t4-t3)+"ms");
+			System.out.println("runJasperReport:time to fill jasper report for "+info.getName()+ "is "+(t4-t3)+"ms");
 
 			// fills compiled report with parameters and a connection
 			JRPdfExporter exporter = new JRPdfExporter();
@@ -686,13 +688,13 @@ public class CreateReportsAction extends AbstractAction
 			}
 
 			long t5 = System.currentTimeMillis();
-			System.out.println("runJasperReport:time to write jasper report for "+sim+ "is "+(t5-t4)+"ms");
+			System.out.println("runJasperReport:time to write jasper report for "+info.getName()+ "is "+(t5-t4)+"ms");
 			return true;
 		}
 		finally
 		{
 			long end = System.currentTimeMillis();
-			System.out.println("runJasperReport:total time to create jasper report for "+sim+" is "+(end-t1)+"ms");
+			System.out.println("runJasperReport:total time to create jasper report for "+info.getName()+" is "+(end-t1)+"ms");
 		}
 	}
 	/**
