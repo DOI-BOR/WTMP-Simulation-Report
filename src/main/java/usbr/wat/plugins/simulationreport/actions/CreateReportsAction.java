@@ -39,6 +39,7 @@ import hec2.wat.io.ProcessOutputReader;
 import hec2.wat.model.WatSimulation;
 
 import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JRExporter;
 import net.sf.jasperreports.engine.JRPropertiesUtil;
 import net.sf.jasperreports.engine.JasperCompileManager;
 import net.sf.jasperreports.engine.JasperFillManager;
@@ -46,11 +47,8 @@ import net.sf.jasperreports.engine.JasperPrint;
 import net.sf.jasperreports.engine.JasperReport;
 import net.sf.jasperreports.engine.SimpleJasperReportsContext;
 import net.sf.jasperreports.engine.data.JRXmlDataSource;
-import net.sf.jasperreports.engine.export.JRPdfExporter;
 import net.sf.jasperreports.engine.util.JRLoader;
 import net.sf.jasperreports.engine.util.JRXmlUtils;
-import net.sf.jasperreports.export.SimpleExporterInput;
-import net.sf.jasperreports.export.SimpleOutputStreamExporterOutput;
 import net.sf.jasperreports.repo.FileRepositoryPersistenceServiceFactory;
 import net.sf.jasperreports.repo.FileRepositoryService;
 import net.sf.jasperreports.repo.PersistenceServiceFactory;
@@ -58,6 +56,7 @@ import net.sf.jasperreports.repo.RepositoryService;
 import rma.util.RMAFilenameFilter;
 import rma.util.RMAIO;
 import usbr.wat.plugins.actionpanel.ActionPanelPlugin;
+import usbr.wat.plugins.actionpanel.io.OutputType;
 import usbr.wat.plugins.actionpanel.io.ReportXmlFile;
 import usbr.wat.plugins.actionpanel.model.ReportPlugin;
 import usbr.wat.plugins.actionpanel.model.ReportsManager;
@@ -107,9 +106,9 @@ public class CreateReportsAction extends AbstractAction
 	@Override
 	public void actionPerformed(ActionEvent e)
 	{
-		createReport();
+		createReport(OutputType.PDF);
 	}
-	public boolean createReport()
+	public boolean createReport(OutputType outputType)
 	{
 		
 		WatSimulation sim;
@@ -120,7 +119,7 @@ public class CreateReportsAction extends AbstractAction
 		{
 			if ( runPythonScript(xmlFile))
 			{
-				return runJasperReport(simInfos.get(0));
+				return runJasperReport(simInfos.get(0), outputType);
 			}
 		}
 		return false;
@@ -565,9 +564,10 @@ public class CreateReportsAction extends AbstractAction
 			
 	}
 	/**
+	 * @param outputType 
 	 * @param sim
 	 */
-	public boolean runJasperReport(SimulationReportInfo info)
+	public boolean runJasperReport(SimulationReportInfo info, OutputType outputType)
 	{
 		long t1 = System.currentTimeMillis();
 		try
@@ -672,9 +672,10 @@ public class CreateReportsAction extends AbstractAction
 			System.out.println("runJasperReport:time to fill jasper report for "+info.getName()+ "is "+(t4-t3)+"ms");
 
 			// fills compiled report with parameters and a connection
-			JRPdfExporter exporter = new JRPdfExporter();
-			exporter.setExporterInput(new SimpleExporterInput(jasperPrint));
-			exporter.setExporterOutput(new SimpleOutputStreamExporterOutput(outputFile));
+			JRExporter exporter = outputType.buildExporter(jasperPrint, outputFile);
+			//JRPdfExporter exporter = new JRPdfExporter();
+			//exporter.setExporterInput(new SimpleExporterInput(jasperPrint));
+			//exporter.setExporterOutput(new SimpleOutputStreamExporterOutput(outputFile));
 
 			try
 			{
