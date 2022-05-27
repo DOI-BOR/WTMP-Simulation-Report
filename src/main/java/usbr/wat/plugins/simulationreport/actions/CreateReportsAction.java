@@ -57,6 +57,7 @@ import rma.util.RMAFilenameFilter;
 import rma.util.RMAIO;
 import usbr.wat.plugins.actionpanel.ActionPanelPlugin;
 import usbr.wat.plugins.actionpanel.io.OutputType;
+import usbr.wat.plugins.actionpanel.io.ReportOptions;
 import usbr.wat.plugins.actionpanel.io.ReportXmlFile;
 import usbr.wat.plugins.actionpanel.model.ReportPlugin;
 import usbr.wat.plugins.actionpanel.model.ReportsManager;
@@ -92,6 +93,7 @@ public class CreateReportsAction extends AbstractAction
 	private static final String ANALYSIS_START_TIME_PARAM = "analysisStartTime";
 	private static final String ANALYSIS_END_TIME_PARAM = "analysisEndTime";
 	private static final String SIMULATION_LAST_COMPUTED_DATE_PARAM = "simulationDate";
+	private static final String PRINT_HEADER_FOOTER_PARAM = "printHeaderAndFooter";
 	private static final String SCRIPTS_DIR = "scripts";
 	
 	
@@ -106,9 +108,11 @@ public class CreateReportsAction extends AbstractAction
 	@Override
 	public void actionPerformed(ActionEvent e)
 	{
-		createReport(OutputType.PDF);
+		ReportOptions options = new ReportOptions();
+		options.setOutputType(OutputType.PDF);
+		createReport(options);
 	}
-	public boolean createReport(OutputType outputType)
+	public boolean createReport(ReportOptions options)
 	{
 		
 		WatSimulation sim;
@@ -119,7 +123,7 @@ public class CreateReportsAction extends AbstractAction
 		{
 			if ( runPythonScript(xmlFile))
 			{
-				return runJasperReport(simInfos.get(0), outputType);
+				return runJasperReport(simInfos.get(0), options);
 			}
 		}
 		return false;
@@ -567,7 +571,7 @@ public class CreateReportsAction extends AbstractAction
 	 * @param outputType 
 	 * @param sim
 	 */
-	public boolean runJasperReport(SimulationReportInfo info, OutputType outputType)
+	public boolean runJasperReport(SimulationReportInfo info, ReportOptions options)
 	{
 		long t1 = System.currentTimeMillis();
 		try
@@ -629,6 +633,7 @@ public class CreateReportsAction extends AbstractAction
 			params.put(SIMULATION_NAME_PARAM, info.getName());
 			params.put(ANALYSIS_START_TIME_PARAM, info.getSimulation().getRunTimeWindow().getStartTime().toString());
 			params.put(ANALYSIS_END_TIME_PARAM, info.getSimulation().getRunTimeWindow().getEndTime().toString());
+			params.put(PRINT_HEADER_FOOTER_PARAM, options.shouldPrintHeadersFooters());	
 			Date date = new Date(info.getLastComputedDate());
 			SimpleDateFormat fmt = new SimpleDateFormat("MMMM dd, yyyy HH:mm");
 
@@ -672,7 +677,7 @@ public class CreateReportsAction extends AbstractAction
 			System.out.println("runJasperReport:time to fill jasper report for "+info.getName()+ "is "+(t4-t3)+"ms");
 
 			// fills compiled report with parameters and a connection
-			JRExporter exporter = outputType.buildExporter(jasperPrint, outputFile);
+			JRExporter exporter = options.getOutputType().buildExporter(jasperPrint, outputFile);
 			//JRPdfExporter exporter = new JRPdfExporter();
 			//exporter.setExporterInput(new SimpleExporterInput(jasperPrint));
 			//exporter.setExporterOutput(new SimpleOutputStreamExporterOutput(outputFile));
