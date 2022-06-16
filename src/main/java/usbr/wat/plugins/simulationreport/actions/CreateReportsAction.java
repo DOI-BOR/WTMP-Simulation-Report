@@ -79,21 +79,27 @@ public class CreateReportsAction extends AbstractReportAction
 		setEnabled(false);
 	}
 	
-	public boolean createReport(ReportOptions options)
+	public boolean createReport(List<SimulationReportInfo> simInfos, ReportOptions options)
 	{
 		
 		WatSimulation sim;
 		long t1 = System.currentTimeMillis();
-		List<SimulationReportInfo>simInfos = ActionPanelPlugin.getInstance().getActionsWindow().getSimulationReportInfos();
-		String xmlFile = createSimulationXmlFile(simInfos.get(0));
-		if ( xmlFile != null )
+		boolean rv = true;
+		for(int i = 0;i < simInfos.size(); i++ )
 		{
-			if ( runPythonScript(xmlFile))
+			String xmlFile = createSimulationXmlFile(simInfos.get(i));
+			if ( xmlFile != null )
 			{
-				return runJasperReport(simInfos.get(0), options);
+				if ( runPythonScript(xmlFile))
+				{
+					if ( !runJasperReport(simInfos.get(0), options))
+					{
+						rv = false;
+					}
+				}
 			}
 		}
-		return false;
+		return rv;
 	}
 	
 	/**
