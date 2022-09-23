@@ -10,11 +10,9 @@ package usbr.wat.plugins.simulationreport.actions;
 import java.awt.EventQueue;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.logging.Logger;
 
 import org.python.core.PyCode;
 import org.python.util.PythonInterpreter;
@@ -29,18 +27,8 @@ import hec2.wat.model.WatSimulation;
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JRExporter;
 import net.sf.jasperreports.engine.JRPropertiesUtil;
-import net.sf.jasperreports.engine.JasperCompileManager;
-import net.sf.jasperreports.engine.JasperFillManager;
 import net.sf.jasperreports.engine.JasperPrint;
-import net.sf.jasperreports.engine.JasperReport;
 import net.sf.jasperreports.engine.SimpleJasperReportsContext;
-import net.sf.jasperreports.engine.data.JRXmlDataSource;
-import net.sf.jasperreports.engine.util.JRLoader;
-import net.sf.jasperreports.engine.util.JRXmlUtils;
-import net.sf.jasperreports.repo.FileRepositoryPersistenceServiceFactory;
-import net.sf.jasperreports.repo.FileRepositoryService;
-import net.sf.jasperreports.repo.PersistenceServiceFactory;
-import net.sf.jasperreports.repo.RepositoryService;
 import rma.util.RMAIO;
 import usbr.wat.plugins.actionpanel.ActionPanelPlugin;
 import usbr.wat.plugins.actionpanel.actions.AbstractReportAction;
@@ -56,16 +44,16 @@ import usbr.wat.plugins.actionpanel.model.SimulationReportInfo;
 @SuppressWarnings("serial")
 public class CreateReportsAction extends AbstractReportAction
 {
+	private Logger _logger = Logger.getLogger(CreateReportsAction.class.getName());
+	
 	public static final String REPORT_INSTALL_FOLDER = "AutomatedReport";
 	
 	
 	public static final String OBS_DATA_FOLDER   = "shared";
 	public static final String REPORT_DIR = "reports";
 	private static final String JASPER_REPORT_DIR = "Reports";
-	private static final String JASPER_FILE = "USBR_Draft_Validation.jrxml";
 	public static final String JASPER_OUT_FILE = "WTMP_report_draft-";
 	public static final String REPORT_FILE_EXT = ".pdf";
-	private static final String XML_DATA_DOCUMENT = "USBRAutomatedReportDataAdapter.xml";
 	
 	private static final String SCRIPTS_DIR = "scripts";
 	
@@ -90,6 +78,10 @@ public class CreateReportsAction extends AbstractReportAction
 			String xmlFile = createSimulationXmlFile(simInfos.get(i));
 			if ( xmlFile != null )
 			{
+				if ( !editDataAdapterFile(simInfos.get(i).getSimFolder()))
+				{
+					return false;
+				}
 				if ( runPythonScript(xmlFile))
 				{
 					if ( !runJasperReport(simInfos.get(0), options))
@@ -109,8 +101,10 @@ public class CreateReportsAction extends AbstractReportAction
 	{
 		Project prj = Project.getCurrentProject();
 		String studyDir = prj.getProjectDirectory();
-		String filename = RMAIO.concatPath(studyDir, REPORT_DIR);
-		filename = RMAIO.concatPath(filename, RMAIO.userNameToFileName(info.getName())+".xml");
+		String simDir = info.getSimFolder();
+		String filename = RMAIO.concatPath(simDir, REPORT_DIR);
+		filename = RMAIO.concatPath(filename, DATA_SOURCES_DIR);
+		filename = RMAIO.concatPath(filename, XML_DATA_OUTPUT);
 		if ( Boolean.getBoolean("SkipSimulationReportFile"))
 		{
 			return filename;
@@ -155,7 +149,7 @@ public class CreateReportsAction extends AbstractReportAction
 			String fpart = findFpartForPython(sim, modelAlt);
 			if ( fpart == null )
 			{
-				System.out.println("createReportAction:no ResSim Alternative found in Simulation "+sim);
+				_logger.info("createReportAction:no ResSim Alternative found in Simulation "+sim);
 				return false;
 			}
 
@@ -185,7 +179,7 @@ public class CreateReportsAction extends AbstractReportAction
 		finally
 		{
 			long t2 = System.currentTimeMillis();
-			System.out.println("runProcess:time to run python for "+sim+" alt "+modelAlt+" is "+(t2-t1)+"ms");
+			_logger.info("runProcess:time to run python for "+sim+" alt "+modelAlt+" is "+(t2-t1)+"ms");
 		}
 		
 	}
@@ -204,41 +198,23 @@ public class CreateReportsAction extends AbstractReportAction
 			//Log log = LogFactory.getLog(JasperFillManager.class);
 			String studyDir = Project.getCurrentProject().getProjectDirectory();
 			String simDir = info.getSimFolder();
-			String jasperRepoDir = RMAIO.concatPath(studyDir, REPORT_DIR);
-			String rptFile = RMAIO.concatPath(jasperRepoDir, JASPER_FILE);
+			String jasperReportFolder = getJasperRelativeFolder();
+			String jasperReportDir = RMAIO.concatPath(studyDir, REPORT_DIR);
+			String rptFile = RMAIO.concatPath(jasperReportDir, JASPER_FILE);
+			String installDir = System.getProperty("user.dir");
+			installDir = RMAIO.getDirectoryFromPath(installDir);
 			//rptFile = RMAIO.concatPath(rptFile, JASPER_FILE);
 
 
-			System.out.println("runReportWithOutputFile:report repository:"+jasperRepoDir);
-
-			SimpleJasperReportsContext context = new SimpleJasperReportsContext();
-			FileRepositoryService fileRepository = new FileRepositoryService(context, 
-					jasperRepoDir, true);
-			context.setExtensions(RepositoryService.class, Collections.singletonList(fileRepository));
-			context.setExtensions(PersistenceServiceFactory.class, 
-					Collections.singletonList(FileRepositoryPersistenceServiceFactory.getInstance()));
+			
 			String inJasperFile = rptFile;
+			
+			//configure the context
+			SimpleJasperReportsContext context = new SimpleJasperReportsContext();
 
 			JRPropertiesUtil.getInstance(context).setProperty("net.sf.jasperreports.xpath.executer.factory",
 					"net.sf.jasperreports.engine.util.xml.JaxenXPathExecuterFactory");
-
-
-
-			long t2 = System.currentTimeMillis();
-			JasperReport jasperReport;
-			try
-			{
-				compileJasperFiles(RMAIO.getDirectoryFromPath(inJasperFile));
-				jasperReport = JasperCompileManager.compileReport(inJasperFile);
-			}
-			catch (JRException e)
-			{
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				return false;
-			}
-			long t3 = System.currentTimeMillis();
-			System.out.println("runJasperReport:time to compile jasper files for "+info.getName()+ "is "+(t3-t2)+"ms");
+			
 
 			String outputFile = RMAIO.concatPath(simDir, REPORT_DIR);
 			RmaFile simDirFile = FileManagerImpl.getFileManager().getFile(outputFile);
@@ -246,61 +222,34 @@ public class CreateReportsAction extends AbstractReportAction
 			{
 				if ( !simDirFile.mkdirs())
 				{
-					System.out.println("runJasperReport:failed to create folder "+simDirFile.getAbsolutePath());
+					_logger.info("runJasperReport:failed to create folder "+simDirFile.getAbsolutePath());
 				}
 			}
-			outputFile = RMAIO.concatPath(outputFile, JASPER_OUT_FILE);
 
-			Map<String, Object>params = new HashMap<>();
-			setParameters(params, jasperRepoDir, info, options);
+			if ( !compileJasperFiles(studyDir, installDir, jasperReportFolder))
+			{
+				return false;
+			}	
 			
-			
-			
+			JasperPrint jasperPrint = fillReport(context, studyDir, installDir, jasperReportFolder, info, options);
+			if ( jasperPrint == null )
+			{
+				return false;
+			}
+
+			outputFile = RMAIO.concatPath(outputFile, JASPER_OUT_FILE);
 			SimpleDateFormat fmt= new SimpleDateFormat("yyyy.MM.dd-HHmm");
-			
+
 			Date date = new Date();
 			outputFile = outputFile.concat(fmt.format(date));
 			outputFile = outputFile.concat(REPORT_FILE_EXT);
-			
-
-			String xmlDataDoc = RMAIO.concatPath(studyDir, REPORT_DIR);
-			xmlDataDoc = RMAIO.concatPath(xmlDataDoc, DATA_SOURCES_DIR);
-			xmlDataDoc = RMAIO.concatPath(xmlDataDoc, XML_DATA_DOCUMENT);
-
-			JasperPrint jasperPrint;
-			System.out.println("runJasperReport:filling report "+inJasperFile);
-			JRXmlDataSource dataSource;
-			try
-			{
-				dataSource = new JRXmlDataSource(context, JRXmlUtils.parse(JRLoader.getLocationInputStream(xmlDataDoc)));
-			}
-			catch (JRException e1)
-			{
-				e1.printStackTrace();
-				return false;
-			}
-			try
-			{
-				jasperPrint = JasperFillManager.getInstance(context).fill(jasperReport, params, dataSource);
-			}
-			catch (JRException e)
-			{
-				e.printStackTrace();
-				return false;
-			}
-			long t4 = System.currentTimeMillis();
-			System.out.println("runJasperReport:time to fill jasper report for "+info.getName()+ "is "+(t4-t3)+"ms");
-
 			// fills compiled report with parameters and a connection
 			JRExporter exporter = options.getOutputType().buildExporter(jasperPrint, outputFile);
-			//JRPdfExporter exporter = new JRPdfExporter();
-			//exporter.setExporterInput(new SimpleExporterInput(jasperPrint));
-			//exporter.setExporterOutput(new SimpleOutputStreamExporterOutput(outputFile));
-
+			long t4 = System.currentTimeMillis();
 			try
 			{
 				exporter.exportReport();
-				System.out.println("runJasperReport:report written to "+outputFile);
+				_logger.info("runJasperReport:simulation report written to "+outputFile);
 			}
 			catch (JRException e)
 			{
@@ -309,17 +258,19 @@ public class CreateReportsAction extends AbstractReportAction
 			}
 
 			long t5 = System.currentTimeMillis();
-			System.out.println("runJasperReport:time to write jasper report for "+info.getName()+ "is "+(t5-t4)+"ms");
+			_logger.info("runJasperReport:time to write jasper simulation report for "+info.getName()+ "is "+(t5-t4)+"ms");
 			return true;
 		}
 		finally
 		{
 			long end = System.currentTimeMillis();
-			System.out.println("runJasperReport:total time to create jasper report for "+info.getName()+" is "+(end-t1)+"ms");
+			_logger.info("runJasperReport:total time to create jasper simulation report for "+info.getName()+" is "+(end-t1)+"ms");
 		}
 	}
 	
 	
+	
+
 	@Override
 	public String getName()
 	{
