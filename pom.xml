@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>usbr.wat.plugins</groupId>
 		<artifactId>usbr-wat-plugins-parent</artifactId>
-		<version>0.0.2-SNAPSHOT</version>
+		<version>local-SNAPSHOT</version>
 		<relativePath>../</relativePath>
 	</parent>
 
@@ -18,7 +18,7 @@
 		<dependency>
 			<groupId>usbr.wat.plugins</groupId>
 			<artifactId>usbr-actionpanel-plugin</artifactId>
-			<version>0.0.2-SNAPSHOT</version>
+			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.python</groupId>
