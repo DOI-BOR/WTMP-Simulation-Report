@@ -103,8 +103,7 @@ public class CreateReportsAction extends AbstractReportAction
 		String studyDir = prj.getProjectDirectory();
 		String simDir = info.getSimFolder();
 		String filename = RMAIO.concatPath(simDir, REPORT_DIR);
-		filename = RMAIO.concatPath(filename, DATA_SOURCES_DIR);
-		filename = RMAIO.concatPath(filename, XML_DATA_OUTPUT);
+		filename = RMAIO.concatPath(filename, RMAIO.userNameToFileName(info.getName())+".xml");
 		if ( Boolean.getBoolean("SkipSimulationReportFile"))
 		{
 			return filename;
