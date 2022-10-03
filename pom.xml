@@ -38,12 +38,6 @@
 		</dependency>
 		<dependency>
 			<groupId>net.sf.jasperreports</groupId>
-			<artifactId>jasperreports-chart-themes</artifactId>
-			<version>6.17.0</version>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>net.sf.jasperreports</groupId>
 			<artifactId>jasperreports-chart-customizers</artifactId>
 			<version>6.17.0</version>
 			<scope>runtime</scope>
