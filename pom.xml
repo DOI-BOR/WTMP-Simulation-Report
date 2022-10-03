@@ -4,8 +4,8 @@
 	<parent>
 		<groupId>usbr.wat.plugins</groupId>
 		<artifactId>usbr-wat-plugins-parent</artifactId>
-		<version>0.0.2-SNAPSHOT</version>
-		<relativePath>../</relativePath>
+		<version>local-SNAPSHOT</version>
+		<relativePath>../pom.xml</relativePath>
 	</parent>
 
 	<artifactId>usbr-simulation-report</artifactId>
@@ -18,7 +18,7 @@
 		<dependency>
 			<groupId>usbr.wat.plugins</groupId>
 			<artifactId>usbr-actionpanel-plugin</artifactId>
-			<version>0.0.2-SNAPSHOT</version>
+			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.python</groupId>
@@ -29,12 +29,6 @@
 				<groupId>net.sf.jasperreports</groupId>
 				<artifactId>jasperreports</artifactId>
 				<version>6.17.0</version>
-		</dependency>
-		<dependency>
-			<groupId>net.sf.jasperreports</groupId>
-			<artifactId>jasperreports-chart-themes</artifactId>
-			<version>6.17.0</version>
-			<scope>runtime</scope>
 		</dependency>
 		<dependency>
 			<groupId>net.sf.jasperreports</groupId>
