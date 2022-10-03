@@ -5,7 +5,7 @@
 		<groupId>usbr.wat.plugins</groupId>
 		<artifactId>usbr-wat-plugins-parent</artifactId>
 		<version>local-SNAPSHOT</version>
-		<relativePath>../</relativePath>
+		<relativePath>../pom.xml</relativePath>
 	</parent>
 
 	<artifactId>usbr-simulation-report</artifactId>
