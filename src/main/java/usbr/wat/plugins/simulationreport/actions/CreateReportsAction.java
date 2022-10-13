@@ -56,6 +56,7 @@ public class CreateReportsAction extends AbstractReportAction
 	public static final String REPORT_FILE_EXT = ".pdf";
 	
 	private static final String SCRIPTS_DIR = "scripts";
+	private static final String MAVEN_PATH = "usbr.wat.plugins/usbr-simulation-report";
 	
 	
 	private PythonInterpreter  _interp;
@@ -304,6 +305,12 @@ public class CreateReportsAction extends AbstractReportAction
 	public static void main(String[] args)
 	{
 		EventQueue.invokeLater(()->register());
+	}
+
+	@Override
+	public String getMavenPath()
+	{
+		return MAVEN_PATH;
 	}
 
 }
