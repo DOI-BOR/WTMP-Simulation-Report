@@ -73,26 +73,30 @@ public class CreateReportsAction extends AbstractReportAction
 		
 		WatSimulation sim;
 		long t1 = System.currentTimeMillis();
-		boolean rv = true;
-		for(int i = 0;i < simInfos.size(); i++ )
+		try
 		{
-			String xmlFile = createSimulationXmlFile(simInfos.get(i));
-			if ( xmlFile != null )
+			for(int i = 0;i < simInfos.size(); i++ )
 			{
-				if ( !editDataAdapterFile(simInfos.get(i).getSimFolder()))
+				String xmlFile = createSimulationXmlFile(simInfos.get(i));
+				if ( xmlFile != null )
 				{
-					return false;
-				}
-				if ( runPythonScript(xmlFile))
-				{
-					if ( !runJasperReport(simInfos.get(0), options))
+					if ( !editDataAdapterFile(simInfos.get(i).getSimFolder()))
 					{
-						rv = false;
+						return false;
+					}
+					if ( runPythonScript(xmlFile))
+					{
+						return !runJasperReport(simInfos.get(0), options);
 					}
 				}
 			}
 		}
-		return rv;
+		finally
+		{
+			long t2 = System.currentTimeMillis();
+			_logger.info("Took "+(t2-t1)+" to create "+getName());
+		}
+		return false;
 	}
 	
 	/**
