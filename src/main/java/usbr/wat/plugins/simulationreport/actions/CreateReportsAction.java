@@ -86,7 +86,7 @@ public class CreateReportsAction extends AbstractReportAction
 					}
 					if ( runPythonScript(xmlFile))
 					{
-						return !runJasperReport(simInfos.get(0), options);
+						return runJasperReport(simInfos.get(0), options);
 					}
 				}
 			}
