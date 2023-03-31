@@ -36,6 +36,7 @@ import usbr.wat.plugins.actionpanel.io.ReportOptions;
 import usbr.wat.plugins.actionpanel.io.ReportXmlFile;
 import usbr.wat.plugins.actionpanel.model.ReportsManager;
 import usbr.wat.plugins.actionpanel.model.SimulationReportInfo;
+import usbr.wat.plugins.actionpanel.ui.UsbrPanel;
 
 /**
  * @author Mark Ackerman
@@ -62,9 +63,10 @@ public class CreateReportsAction extends AbstractReportAction
 	private PythonInterpreter  _interp;
 	private PyCode _pycode;
 	
-	public CreateReportsAction()
+	public CreateReportsAction(UsbrPanel parentPanel)
 	{
-		super("Create Reports");
+		super("Create Reports", parentPanel);
+
 		setEnabled(false);
 	}
 	
@@ -303,7 +305,7 @@ public class CreateReportsAction extends AbstractReportAction
 	}
 	public static void register()
 	{
-		ReportsManager.register(new CreateReportsAction());
+		ReportsManager.register(new CreateReportsAction(null));
 	}
 	
 	public static void main(String[] args)
