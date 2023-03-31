@@ -1,0 +1,30 @@
+plugins {
+    id "java-library"
+    id "maven-publish"
+}
+
+dependencies {
+    def rootProject = project(":");
+    implementation project(":usbr-actionpanel-plugin")
+}
+
+
+jar {
+    manifest {
+        attributes("WatPluginMainClass": "usbr.wat.plugins.simulationreport.actions.CreateReportsAction")
+    }
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            artifactId = "usbr-simulation-report"
+            from components.java
+        }
+    }
+}
+
+compileJava {
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+}
