@@ -1,5 +1,5 @@
 [versions]
-wtmp-actionpanel-plugin = "2026.03.25"
+wtmp-actionpanel-plugin = "2026.05.01"
 junit-version = "5.14.2"
 
 [libraries]
